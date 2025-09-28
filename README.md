@@ -3,7 +3,7 @@
 
 ## autoscaling 
 
-[![asciicast](https://asciinema.org/a/48EOa1GxJACXud0WXkHehS4CV.svg)](https://asciinema.org/a/48EOa1GxJACXud0WXkHehS4CV)
+[![asciicast](https://asciinema.org/a/Nx4IvyupmY1Wg9RZQJHtE7IsA.svg)](https://asciinema.org/a/Nx4IvyupmY1Wg9RZQJHtE7IsA)
 
 ```bash 
 asciinema rec --command './utils/monitor.sh autoscaling' --capture-input --title 'Realtime Autoscaling monitoring with asciigraph' --overwrite autoscaling.cast
