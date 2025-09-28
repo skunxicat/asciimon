@@ -11,6 +11,8 @@ asciinema rec --command './utils/monitor.sh autoscaling' --capture-input --title
 
 ## ecs
 
+![ecs.gif](./data/ecs.gif)
+
 [![asciicast](https://asciinema.org/a/orByut2h4zEChgrtQcK9jADCk.svg)](https://asciinema.org/a/orByut2h4zEChgrtQcK9jADCk)
 
 ```bash
