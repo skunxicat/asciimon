@@ -3,6 +3,8 @@
 
 ## autoscaling 
 
+![autoscaling.gif](./autoscaling.gif)
+
 [![asciicast](https://asciinema.org/a/Nx4IvyupmY1Wg9RZQJHtE7IsA.svg)](https://asciinema.org/a/Nx4IvyupmY1Wg9RZQJHtE7IsA)
 
 ```bash 
@@ -11,7 +13,7 @@ asciinema rec --command './utils/monitor.sh autoscaling' --capture-input --title
 
 ## ecs
 
-![ecs.gif](./data/ecs.gif)
+![ecs.gif](./ecs.gif)
 
 [![asciicast](https://asciinema.org/a/orByut2h4zEChgrtQcK9jADCk.svg)](https://asciinema.org/a/orByut2h4zEChgrtQcK9jADCk)
 
