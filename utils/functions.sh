@@ -11,6 +11,12 @@ ECS_CLUSTER_ARN=""
 SQS_QUEUE_URL=""
 
 REFRESH_INTERVAL=0.2
+UB=12
+W=84
+# UB=18
+# W=64
+
+LAMBDA_REFRESH_INTERVAL=30
 
 
 # shellcheck source=/dev/null
@@ -72,6 +78,46 @@ function bootstrap () {
     echo "ready" >&2
 }
 
+function autoscaling_activities () {
+    bootstrap
+    local max_items=3
+    local lines=$(( max_items +4 +1))
+    while true; do
+        aws application-autoscaling describe-scaling-activities \
+            --service-namespace ecs \
+            --resource-id "service/$ECS_CLUSTER_ARN/$ECS_SERVICE" \
+            --query 'ScalingActivities[].[StartTime,Description,StatusCode]' \
+            --output table \
+            --max-items "$max_items"
+        echo "UPDATED: $(date)"
+        sleep 20
+        # clean terminal lines
+        # shellcheck disable=SC2034
+        for i in $(seq 1 $lines); do
+            tput cuu1
+            tput el
+        done
+    done    
+}
+
+function lambda_concurrency () {
+    local function_name
+    function_name="$1"
+    if [ -z "$function_name" ]; then
+        echo "function name is required" >&2
+        exit 1
+    fi
+    aws cloudwatch get-metric-statistics  \
+        --namespace AWS/Lambda \
+        --statistics Maximum \
+        --metric-name ConcurrentExecutions \
+        --dimensions Name=FunctionName,Value="${function_name}"  \
+        --period 120  \
+        --start-time "$(date -d '2 minutes ago')"  \
+        --end-time "$(date )" \
+        | jq -r  '.Datapoints|first.Maximum'
+}
+
 function monitor_autoascaling () {
     bootstrap
     while true; do
@@ -95,12 +141,12 @@ function monitor_autoascaling () {
     done   \
     | asciigraph -r \
         -p 0 \
-        -w 84 \
+        -w "$W" \
         -sn 4 \
         -sl "DesiredTaskCount,RunningTaskCount,Backlog,WorkingTaskCount" \
         -sc "blue,green,white,red" \
         -lb 0 \
-        -ub 12
+        -ub "$UB"
 }
 
 function monitor_consumers () {
@@ -132,7 +178,7 @@ function monitor_consumers () {
         -sl "DesiredTaskCount,RunningTaskCount,IdleTaskCount,WorkingTaskCount" \
         -sc "blue,green,white,red" \
         -lb 0 \
-        -ub 12
+        -ub "$UB"
 }
 
 function monitor_sqs () {
@@ -140,7 +186,7 @@ function monitor_sqs () {
     while true; do
         timestamp=$(date +%H:%M:%S)
         data=$(fetch_data | jq -r '.sqs + .ecs|{ ApproximateNumberOfMessages, ApproximateNumberOfMessagesNotVisible,  }|[.[]] | map(tonumber)  | join(",")')
-        echo "$data"2
+        echo "$data"
         echo "$timestamp" >&2
         sleep "$REFRESH_INTERVAL"
     done  | asciigraph -r \
@@ -148,9 +194,9 @@ function monitor_sqs () {
         -w 84 \
         -sn 2 \
         -sl "ApproximateNumberOfMessages,ApproximateNumberOfMessagesNotVisible" \
-        -sc "red,blue" \
+        -sc "green,red" \
         -lb 0 \
-        -ub 12
+        -ub "$UB"
 }
 
 function monitor_ecs () {
@@ -166,27 +212,28 @@ done | asciigraph -r \
     -sl "desiredCount,pendingCount,runningCount,protectedCount" \
     -sc "blue,white,green,red" \
     -lb 0 \
-    -ub 12
+    -ub "$UB"
 }
 
-function autoscaling_activities () {
-    bootstrap
-    local max_items=5
-    local lines=$(( max_items +4 +1))
+function monitor_lambda_concurrency () {
+    local function_name
+    local refresh_interval
+    function_name="$1"
+    refresh_interval="${2:-$LAMBDA_REFRESH_INTERVAL}"
+    if [ -z "$function_name" ]; then
+        echo "function name is required" >&2
+        exit 1
+    fi
     while true; do
-        aws application-autoscaling describe-scaling-activities \
-            --service-namespace ecs \
-            --resource-id "service/$ECS_CLUSTER_ARN/$ECS_SERVICE" \
-            --query 'ScalingActivities[].[StartTime,Description,StatusCode]' \
-            --output table \
-            --max-items "$max_items"
-        echo "UPDATED: $(date)"
-        sleep 20
-        # clean terminal lines
-        # shellcheck disable=SC2034
-        for i in $(seq 1 $lines); do
-            tput cuu1
-            tput el
-        done
-    done    
+        lambda_concurrency "$function_name" | \
+        asciigraph -r \
+            -p 0 \
+            -w 84 \
+            -sn 1 \
+            -sl "Concurrency" \
+            -sc "green" \
+            -lb 0 \
+            -ub 12
+        sleep "$refresh_interval"
+    done
 }

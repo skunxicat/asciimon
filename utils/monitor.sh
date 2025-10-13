@@ -20,12 +20,16 @@ case "${1:-autoscaling}" in
     "consumers")
         monitor_consumers
         ;;
+    "autoscaling_activities")
+        autoscaling_activities
+        ;;
     *)
         echo "Usage: $0 [autoscaling|ecs]" >&2
         echo "  autoscaling - Monitor queue backlog and running tasks (default)" >&2
         echo "  ecs         - Monitor ECS service metrics" >&2
         echo "  sqs         - Monitor SQS queue activity" >&2
         echo "  consumers   - Monitor consumers activity" >&2
+        echo "  autoscaling_activities - Monitor autoscaling activities" >&2
         exit 1
         ;;
 esac
